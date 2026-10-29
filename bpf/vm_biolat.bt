@@ -1,0 +1,47 @@
+// vm_biolat.bt — host block I/O latency for selected devices
+// args->rwbs is a string on RHEL9 bpftrace — do not index with [].
+
+BEGIN {
+	@@DISK_INIT@@
+	printf("vm_biolat: tracing block_rq for selected disks\n");
+}
+
+tracepoint:block:block_rq_issue
+/@disks[args->dev]/
+{
+	@start[args->dev, args->sector] = nsecs;
+	@issued = count();
+}
+
+tracepoint:block:block_rq_complete
+/@disks[args->dev] && @start[args->dev, args->sector]/
+{
+	$lat_us = (nsecs - @start[args->dev, args->sector]) / 1000;
+	@biolat_us = hist($lat_us);
+	@completed = count();
+	/* latency by rwbs string (R/W/WS/...) */
+	@biolat_by_rwbs[args->rwbs] = hist($lat_us);
+	@rwbs_count[args->rwbs] = count();
+	delete(@start[args->dev, args->sector]);
+}
+
+interval:ms:@@DURATION_MS@@
+{
+	exit();
+}
+
+END
+{
+	printf("\n=== [1] Block I/O latency (host, filtered devices) ===\n");
+	printf("issued / completed:\n");
+	print(@issued);
+	print(@completed);
+	printf("rwbs counts:\n");
+	print(@rwbs_count);
+	printf("latency histogram (us):\n");
+	print(@biolat_us);
+	printf("latency by rwbs (us):\n");
+	print(@biolat_by_rwbs);
+	clear(@start);
+	clear(@disks);
+}

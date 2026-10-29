@@ -1,0 +1,4 @@
+Full raw output for job vm-lat-winx-1-20260918101002 was analyzed in
+../ebpf-histogram-explain.md (rewritten for this run).
+If your observe --out-dir tee created winx-1-20260918T101003Z-raw.txt on the jump host,
+copy it here for archival.

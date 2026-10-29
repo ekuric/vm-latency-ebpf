@@ -1,0 +1,122 @@
+# Template rendered by bin/vm-latency-observe.sh
+# Placeholders: __NAMESPACE__, __JOB_NAME__, __NODE_NAME__, __SA_NAME__,
+#               __IMAGE__, __DURATION__, __VMI_NAME__, __QEMU_GUEST_NAME__,
+#               __VIRT_LAUNCHER_UID__, __VIRT_LAUNCHER_POD__,
+#               __CM_NAME__, __TTL_SECONDS__, __PING_GUEST__, __CLASSIC_TOOLS__,
+#               __GUEST_IPS__, __HOST_NETWORK__, __DNS_POLICY__
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: __JOB_NAME__
+  namespace: __NAMESPACE__
+  labels:
+    app: vm-latency-observer
+    vmi: __VMI_NAME__
+spec:
+  ttlSecondsAfterFinished: __TTL_SECONDS__
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: vm-latency-observer
+        vmi: __VMI_NAME__
+    spec:
+      serviceAccountName: __SA_NAME__
+      restartPolicy: Never
+      nodeName: __NODE_NAME__
+      hostPID: true
+      hostNetwork: __HOST_NETWORK__
+      dnsPolicy: __DNS_POLICY__
+      containers:
+        - name: observer
+          image: __IMAGE__
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            # spc_t: required on many OCP nodes to read other PIDs' /proc/*/cmdline
+            seLinuxOptions:
+              type: spc_t
+            capabilities:
+              add:
+                - SYS_ADMIN
+                - SYS_RESOURCE
+                - SYS_PTRACE
+                - BPF
+                - PERFMON
+                - NET_ADMIN
+                - NET_RAW
+          env:
+            - name: VMI_NAME
+              value: "__VMI_NAME__"
+            - name: NAMESPACE
+              value: "__NAMESPACE__"
+            - name: QEMU_GUEST_NAME
+              value: "__QEMU_GUEST_NAME__"
+            - name: VIRT_LAUNCHER_UID
+              value: "__VIRT_LAUNCHER_UID__"
+            - name: VIRT_LAUNCHER_POD
+              value: "__VIRT_LAUNCHER_POD__"
+            - name: NODE_NAME
+              value: "__NODE_NAME__"
+            - name: DURATION
+              value: "__DURATION__"
+            - name: PING_GUEST
+              value: "__PING_GUEST__"
+            - name: CLASSIC_TOOLS
+              value: "__CLASSIC_TOOLS__"
+            - name: GUEST_IPS
+              value: "__GUEST_IPS__"
+            - name: TOOLS_DIR
+              value: /tools
+          command:
+            - /bin/bash
+            - -lc
+            - |
+              set -euo pipefail
+              echo "observer boot: hostPID_init=$(cat /proc/1/comm 2>/dev/null || true) pids=$(find /proc -maxdepth 1 -type d -name '[0-9]*' 2>/dev/null | wc -l) scc_hint=check openshift.io/scc annotation"
+              if ! command -v bpftrace >/dev/null 2>&1; then
+                echo "bpftrace missing — attempting package install (needs network/cache)..."
+                if command -v dnf >/dev/null 2>&1; then
+                  dnf install -y bpftrace findutils util-linux procps-ng python3 iputils iproute 2>/dev/null || true
+                elif command -v microdnf >/dev/null 2>&1; then
+                  microdnf install -y bpftrace findutils util-linux procps-ng python3 iputils iproute 2>/dev/null || true
+                fi
+              fi
+              if ! command -v bpftrace >/dev/null 2>&1; then
+                echo "error: bpftrace still not available; use --image with the Dockerfile build" >&2
+                exit 1
+              fi
+              # Line-buffer so oc logs -f shows progress (pipe is fully buffered by default)
+              if command -v stdbuf >/dev/null 2>&1; then
+                exec stdbuf -oL -eL /tools/vm_latency_stack.sh
+              fi
+              exec /tools/vm_latency_stack.sh
+          volumeMounts:
+            - name: tools
+              mountPath: /tools
+              readOnly: true
+            - name: sys
+              mountPath: /sys
+            - name: lib-modules
+              mountPath: /lib/modules
+              readOnly: true
+            - name: work
+              mountPath: /tmp/vm-latency-work
+      volumes:
+        - name: tools
+          configMap:
+            name: __CM_NAME__
+            defaultMode: 0755
+        - name: sys
+          hostPath:
+            path: /sys
+            type: Directory
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+            type: Directory
+        - name: work
+          emptyDir: {}
+      tolerations:
+        - operator: Exists

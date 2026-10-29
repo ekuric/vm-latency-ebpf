@@ -1,0 +1,51 @@
+// vm_netlat.bt — host net TX path latency for a CNV VM
+// TX: timestamp when a QEMU/vhost thread queues an skb; complete on net_dev_xmit.
+// RX: count netif_receive_skb where iface name matches the VM's tap/k6t.
+
+BEGIN {
+	@@TX_THREAD_INIT@@
+	printf("vm_netlat: tracing TX via qemu/vhost threads; RX via iface name predicate\n");
+}
+
+tracepoint:net:net_dev_queue
+/@txthreads[tid]/
+{
+	@q_ts[args->skbaddr] = nsecs;
+	@queued = count();
+}
+
+tracepoint:net:net_dev_xmit
+/@q_ts[args->skbaddr]/
+{
+	$lat_us = (nsecs - @q_ts[args->skbaddr]) / 1000;
+	@net_tx_queue_to_xmit_us = hist($lat_us);
+	@net_tx_samples = count();
+	delete(@q_ts[args->skbaddr]);
+	@xmit = count();
+}
+
+tracepoint:net:netif_receive_skb
+/@@IFNAME_PREDICATE@@/
+{
+	@rx = count();
+}
+
+interval:ms:@@DURATION_MS@@
+{
+	exit();
+}
+
+END
+{
+	printf("\n=== [4] Host network path (tap/vnet) ===\n");
+	printf("TX queue (qemu/vhost) / xmit / RX counts:\n");
+	print(@queued);
+	print(@xmit);
+	print(@rx);
+	printf("TX queue→xmit latency (us):\n");
+	print(@net_tx_queue_to_xmit_us);
+	printf("TX latency samples:\n");
+	print(@net_tx_samples);
+	clear(@q_ts);
+	clear(@txthreads);
+}

@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vm-latency-observer
+  namespace: __NAMESPACE__
+  labels:
+    app: vm-latency-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vm-latency-observer
+  namespace: __NAMESPACE__
+  labels:
+    app: vm-latency-observer
+rules:
+  # Observer itself only needs to run; keep Role minimal.
+  # Cluster resolution is done client-side via the operator's kubeconfig.
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vm-latency-observer
+  namespace: __NAMESPACE__
+  labels:
+    app: vm-latency-observer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vm-latency-observer
+subjects:
+  - kind: ServiceAccount
+    name: vm-latency-observer
+    namespace: __NAMESPACE__

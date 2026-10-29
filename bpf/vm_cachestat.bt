@@ -1,0 +1,82 @@
+// vm_cachestat.bt — host page-cache hit/miss rates (BCC cachestat-style)
+// System-wide on the node (page cache is not VM-scoped). Correlate with a VM
+// under load: high miss rate + heavy biolat often means cold/reclaim pressure.
+//
+// Counters (best-effort across kernel versions):
+//   apcl  — pages added to page cache (miss path)
+//   mpa   — mark_page_accessed (reuse / hit-ish)
+//   mbd   — pages marked dirty
+// HIT% ≈ max(0, mpa-mbd) / (hits+misses) when both sides have samples.
+
+BEGIN {
+	printf("vm_cachestat: tracing page-cache activity (host-wide)\n");
+	printf("%-12s %10s %10s %10s %10s %8s\n",
+		"TIME", "HITS", "MISSES", "DIRTIES", "HIT%", "MISSES/s");
+}
+
+/* ---- page added to cache (miss) ---- */
+tracepoint:filemap:mm_filemap_add_to_page_cache
+{
+	@apcl = count();
+	@apcl_total = count();
+}
+
+/* ---- accessed (hit-ish) ---- */
+kprobe:mark_page_accessed,
+kprobe:folio_mark_accessed
+{
+	@mpa = count();
+	@mpa_total = count();
+}
+
+/* ---- dirtied ---- */
+tracepoint:writeback:writeback_dirty_folio,
+tracepoint:writeback:writeback_dirty_page,
+kprobe:account_page_dirtied,
+kprobe:folio_account_dirtied,
+kprobe:mark_buffer_dirty
+{
+	@mbd = count();
+	@mbd_total = count();
+}
+
+interval:s:1
+{
+	$apcl = @apcl;
+	$mpa = @mpa;
+	$mbd = @mbd;
+	/* Classic BCC-ish: hits ≈ accessed - dirties; misses ≈ adds */
+	$hits = ($mpa > $mbd) ? ($mpa - $mbd) : 0;
+	$misses = $apcl;
+	$total = $hits + $misses;
+	$hitpct = ($total > 0) ? (100 * $hits / $total) : 0;
+	time("%H:%M:%S   ");
+	printf("%10d %10d %10d %9d%% %10d\n",
+		$hits, $misses, $mbd, $hitpct, $misses);
+	clear(@apcl);
+	clear(@mpa);
+	clear(@mbd);
+}
+
+interval:ms:@@DURATION_MS@@
+{
+	exit();
+}
+
+END
+{
+	printf("\n=== [5] Cachestat (host page cache) ===\n");
+	printf("totals over window (raw counts):\n");
+	printf("  add_to_page_cache (apcl / misses proxy):\n");
+	print(@apcl_total);
+	printf("  mark_page_accessed (mpa):\n");
+	print(@mpa_total);
+	printf("  dirty (mbd):\n");
+	print(@mbd_total);
+	clear(@apcl);
+	clear(@mpa);
+	clear(@mbd);
+	clear(@apcl_total);
+	clear(@mpa_total);
+	clear(@mbd_total);
+}

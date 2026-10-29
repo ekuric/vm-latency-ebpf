@@ -1,0 +1,76 @@
+// vm_runqlat_host.bt — system-wide run-queue latency (classic BCC runqlat)
+// Complements vm_runqlat.bt ([2]), which is scoped to this VM's QEMU threads only.
+// Useful to see whether the *node* is contended vs only this VM's vCPU/IOThread.
+//
+// Host-wide sched wakeups are high-rate on busy OCP nodes. Orphan wake timestamps
+// are cleared periodically to bound map growth (avoids apparent hangs / map full).
+
+BEGIN {
+	@@QTHREAD_INIT@@
+	printf("vm_runqlat_host: tracing system-wide + this-VM QEMU run-queue latency\n");
+}
+
+/* ---- host-wide ---- */
+tracepoint:sched:sched_wakeup,
+tracepoint:sched:sched_wakeup_new
+{
+	@wake_ts[args->pid] = nsecs;
+}
+
+tracepoint:sched:sched_switch
+/@wake_ts[args->next_pid]/
+{
+	$lat_us = (nsecs - @wake_ts[args->next_pid]) / 1000;
+	@runqlat_us = hist($lat_us);
+	@runq_samples = count();
+	delete(@wake_ts[args->next_pid]);
+}
+
+/* ---- this VM QEMU threads (overlay; same as [2] all-QEMU) ---- */
+tracepoint:sched:sched_wakeup,
+tracepoint:sched:sched_wakeup_new
+/@qthreads[args->pid]/
+{
+	@wake_ts_q[args->pid] = nsecs;
+}
+
+tracepoint:sched:sched_switch
+/@qthreads[args->next_pid] && @wake_ts_q[args->next_pid]/
+{
+	$lat_us = (nsecs - @wake_ts_q[args->next_pid]) / 1000;
+	@runqlat_qemu_us = hist($lat_us);
+	@runq_samples_qemu = count();
+	delete(@wake_ts_q[args->next_pid]);
+}
+
+/* Bound orphaned wake entries (woke but not yet scheduled) */
+interval:s:2
+{
+	clear(@wake_ts);
+}
+
+interval:s:10
+{
+	printf("vm_runqlat_host: heartbeat still tracing...\n");
+}
+
+interval:ms:@@DURATION_MS@@
+{
+	exit();
+}
+
+END
+{
+	printf("\n=== [7] Runqlat host-wide (classic) ===\n");
+	printf("samples (all tasks on node):\n");
+	print(@runq_samples);
+	printf("run-queue latency histogram — all tasks (us):\n");
+	print(@runqlat_us);
+	printf("samples (this VM QEMU threads only):\n");
+	print(@runq_samples_qemu);
+	printf("run-queue latency histogram — this VM QEMU (us):\n");
+	print(@runqlat_qemu_us);
+	clear(@wake_ts);
+	clear(@wake_ts_q);
+	clear(@qthreads);
+}

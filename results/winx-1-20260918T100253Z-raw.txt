@@ -1,0 +1,384 @@
+# CNV VM latency stack raw output
+# VMI: ekuric/winx-1 (Windows)
+# node: x37-h41-000-r740xd
+# time_utc: 2026-09-18T10:02:53Z
+# duration_s: 30 per probe layer
+# job: vm-lat-winx-1-20260918100251
+# image: quay.io/ekuric/vm-latency-ebpf:latest
+#
+# Saved from operator console capture of vm-latency-observe.sh run.
+
+resolving VMI...
+VMI_NAME=winx-1
+NAMESPACE=ekuric
+VMI_UID=7133267c-898a-4ee0-85c7-dd098f1930fb
+NODE_NAME=x37-h41-000-r740xd
+VMI_PHASE=Running
+QEMU_GUEST_NAME=ekuric_winx-1
+GUEST_IPS=10.128.3.226
+VIRT_LAUNCHER_POD=virt-launcher-winx-1-pj5rh
+VIRT_LAUNCHER_UID=e81ab20f-2527-4e03-8234-189f5f3a49bc
+VIRT_LAUNCHER_PHASE=Running
+
+observer boot: hostPID_init=systemd pids=1583 scc_hint=check openshift.io/scc annotation
+================================================================
+ CNV VM latency stack (eBPF / bpftrace)
+================================================================
+time_utc:     2026-09-18T10:02:53Z
+vmi:          ekuric/winx-1
+guest_name:   ekuric_winx-1
+node:         x37-h41-000-r740xd
+duration_s:   30
+ping_guest:   0
+guest_ips:    10.128.3.226
+launcher_uid: e81ab20f-2527-4e03-8234-189f5f3a49bc
+tools_dir:    /tools
+
+hostpid_check: visible_pids=1584
+
+--- discovering QEMU / disks / net ifaces ---
+discover: visible host PIDs=1585 guest=ekuric_winx-1 vmi=winx-1 launcher_uid=e81ab20f-2527-4e03-8234-189f5f3a49bc
+discover: matched qemu_tgid=2756104 via cmdline_guest_name
+discover: cmdline=/usr/libexec/qemu-kvm -name guest=ekuric_winx-1,debug-threads=on -S -object {"qom-type":"secret","id":"masterKey0","format":"raw","file":"/var/run/kubevirt-private/libvirt/qemu/lib/domain-1-ekuric_winx-1/master-key.aes"} -blockdev {"driver"
+QEMU_TGID=2756104
+QEMU_COMM=qemu-kvm
+QEMU_GUEST_NAME=ekuric_winx-1
+VMI_NAME=winx-1
+NAMESPACE=ekuric
+THREAD_COUNT=31
+DISK_DEVS=252:16,252:32
+DISK_MKDEV=264241168,264241184
+FILE_BACKED_WARN=0
+NET_IFNAMES=k6t-eth0,tap0
+NET_IFINDEXES=k6t-eth0=3,tap0=4
+NET_IFINDEX_LIST=3,4
+NET_NAME_COLLISION_WARN=1
+VHOST_TIDS=2756116,2756117,2756118,2756119,2756120,2756121,2756122,2756123,2756124,2756125,2756126,2756127,2756128,2756129,2756130,2756131
+MATCH_METHOD=cmdline_guest_name
+
+qemu_tgid:       2756104
+qemu_comm:       qemu-kvm
+thread_count:    31
+disk_devs:       252:16,252:32
+disk_mkdev:      264241168,264241184
+file_backed_warn:0
+net_ifnames:     k6t-eth0,tap0
+net_ifindexes:   k6t-eth0=3,tap0=4
+net_ifindex_list:3,4
+net_name_warn:   1
+vhost_tids:      2756116,2756117,2756118,2756119,2756120,2756121,2756122,2756123,2756124,2756125,2756126,2756127,2756128,2756129,2756130,2756131
+
+>>> running vm_biolat for 30s
+WARNING: Could not find kernel headers in /lib/modules/5.14.0-687.44.1.el9_8.x86_64/source or /lib/modules/5.14.0-687.44.1.el9_8.x86_64/build. To specify a particular path to kernel headers, set the env variables BPFTRACE_KERNEL_SOURCE and, optionally, BPFTRACE_KERNEL_BUILD if the kernel was built in a different directory than its source. To create kernel headers run 'modprobe kheaders', which will create a tar file at /sys/kernel/kheaders.tar.xz
+Attaching 5 probes...
+vm_biolat: tracing block_rq for selected disks
+
+=== [1] Block I/O latency (host, filtered devices) ===
+issued / completed:
+@issued: 91396
+@completed: 91395
+rwbs counts:
+@rwbs_count[R]: 2
+@rwbs_count[DS]: 15
+@rwbs_count[WS]: 91378
+latency histogram (us):
+@biolat_us: 
+[1]                    7 |                                                    |
+[2, 4)                 3 |                                                    |
+[4, 8)                 5 |                                                    |
+[8, 16)                0 |                                                    |
+[16, 32)               0 |                                                    |
+[32, 64)               0 |                                                    |
+[64, 128)              0 |                                                    |
+[128, 256)             0 |                                                    |
+[256, 512)           185 |                                                    |
+[512, 1K)          67094 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[1K, 2K)           15935 |@@@@@@@@@@@@                                        |
+[2K, 4K)            6665 |@@@@@                                               |
+[4K, 8K)            1416 |@                                                   |
+[8K, 16K)             68 |                                                    |
+[16K, 32K)            17 |                                                    |
+
+latency by rwbs (us):
+@biolat_by_rwbs[R]: 
+[4K, 8K)               1 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[8K, 16K)              1 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+
+@biolat_by_rwbs[DS]: 
+[1]                    7 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[2, 4)                 3 |@@@@@@@@@@@@@@@@@@@@@@                              |
+[4, 8)                 5 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@               |
+
+@biolat_by_rwbs[WS]: 
+[256, 512)           185 |                                                    |
+[512, 1K)          67094 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[1K, 2K)           15935 |@@@@@@@@@@@@                                        |
+[2K, 4K)            6665 |@@@@@                                               |
+[4K, 8K)            1415 |@                                                   |
+[8K, 16K)             67 |                                                    |
+[16K, 32K)            17 |                                                    |
+
+
+
+@biolat_by_rwbs[R]: 
+[4K, 8K)               1 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[8K, 16K)              1 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+
+@biolat_by_rwbs[DS]: 
+[1]                    7 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[2, 4)                 3 |@@@@@@@@@@@@@@@@@@@@@@                              |
+[4, 8)                 5 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@               |
+
+@biolat_by_rwbs[WS]: 
+[256, 512)           185 |                                                    |
+[512, 1K)          67094 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[1K, 2K)           15935 |@@@@@@@@@@@@                                        |
+[2K, 4K)            6665 |@@@@@                                               |
+[4K, 8K)            1415 |@                                                   |
+[8K, 16K)             67 |                                                    |
+[16K, 32K)            17 |                                                    |
+
+@biolat_us: 
+[1]                    7 |                                                    |
+[2, 4)                 3 |                                                    |
+[4, 8)                 5 |                                                    |
+[8, 16)                0 |                                                    |
+[16, 32)               0 |                                                    |
+[32, 64)               0 |                                                    |
+[64, 128)              0 |                                                    |
+[128, 256)             0 |                                                    |
+[256, 512)           185 |                                                    |
+[512, 1K)          67094 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[1K, 2K)           15935 |@@@@@@@@@@@@                                        |
+[2K, 4K)            6665 |@@@@@                                               |
+[4K, 8K)            1416 |@                                                   |
+[8K, 16K)             68 |                                                    |
+[16K, 32K)            17 |                                                    |
+
+@completed: 91395
+
+@issued: 91396
+@rwbs_count[R]: 2
+@rwbs_count[DS]: 15
+@rwbs_count[WS]: 91378
+
+
+>>> running vm_runqlat for 30s
+WARNING: Could not find kernel headers in /lib/modules/5.14.0-687.44.1.el9_8.x86_64/source or /lib/modules/5.14.0-687.44.1.el9_8.x86_64/build. To specify a particular path to kernel headers, set the env variables BPFTRACE_KERNEL_SOURCE and, optionally, BPFTRACE_KERNEL_BUILD if the kernel was built in a different directory than its source. To create kernel headers run 'modprobe kheaders', which will create a tar file at /sys/kernel/kheaders.tar.xz
+Attaching 6 probes...
+vm_runqlat: tracing QEMU thread run-queue latency
+
+=== [2] vCPU / QEMU run-queue latency ===
+samples:
+@runq_samples: 374308
+run-queue latency histogram (us):
+@runqlat_us: 
+[0]               141752 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@               |
+[1]               194283 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[2, 4)             32868 |@@@@@@@@                                            |
+[4, 8)              4245 |@                                                   |
+[8, 16)              704 |                                                    |
+[16, 32)             280 |                                                    |
+[32, 64)              67 |                                                    |
+[64, 128)             26 |                                                    |
+[128, 256)            40 |                                                    |
+[256, 512)            21 |                                                    |
+[512, 1K)              9 |                                                    |
+[1K, 2K)               4 |                                                    |
+[2K, 4K)               8 |                                                    |
+[4K, 8K)               1 |                                                    |
+
+
+
+
+@runq_samples: 374308
+@runqlat_us: 
+[0]               141752 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@               |
+[1]               194283 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[2, 4)             32868 |@@@@@@@@                                            |
+[4, 8)              4245 |@                                                   |
+[8, 16)              704 |                                                    |
+[16, 32)             280 |                                                    |
+[32, 64)              67 |                                                    |
+[64, 128)             26 |                                                    |
+[128, 256)            40 |                                                    |
+[256, 512)            21 |                                                    |
+[512, 1K)              9 |                                                    |
+[1K, 2K)               4 |                                                    |
+[2K, 4K)               8 |                                                    |
+[4K, 8K)               1 |                                                    |
+
+
+
+>>> running vm_kvmlat for 30s
+WARNING: Could not find kernel headers in /lib/modules/5.14.0-687.44.1.el9_8.x86_64/source or /lib/modules/5.14.0-687.44.1.el9_8.x86_64/build. To specify a particular path to kernel headers, set the env variables BPFTRACE_KERNEL_SOURCE and, optionally, BPFTRACE_KERNEL_BUILD if the kernel was built in a different directory than its source. To create kernel headers run 'modprobe kheaders', which will create a tar file at /sys/kernel/kheaders.tar.xz
+Attaching 5 probes...
+vm_kvmlat: tracing kvm_exit/kvm_entry for tgid 2756104
+
+=== [3] KVM exit host-time ===
+exits / entries:
+@exits: 13176277
+@entries: 13176084
+host time between kvm_exit and kvm_entry (us):
+@kvm_host_us: 
+[0]                16713 |                                                    |
+[1]               808674 |@@@@@@                                              |
+[2, 4)           5164078 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@             |
+[4, 8)           6773061 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[8, 16)           163452 |@                                                   |
+[16, 32)            5864 |                                                    |
+[32, 64)            5624 |                                                    |
+[64, 128)           9334 |                                                    |
+[128, 256)         33956 |                                                    |
+[256, 512)        167565 |@                                                   |
+[512, 1K)           8789 |                                                    |
+[1K, 2K)            6361 |                                                    |
+[2K, 4K)            3119 |                                                    |
+[4K, 8K)            3015 |                                                    |
+[8K, 16K)           2440 |                                                    |
+[16K, 32K)          1727 |                                                    |
+[32K, 64K)          1200 |                                                    |
+[64K, 128K)          812 |                                                    |
+[128K, 256K)         248 |                                                    |
+[256K, 512K)          41 |                                                    |
+[512K, 1M)             7 |                                                    |
+
+exit reasons (raw codes):
+@exit_reason[0]: 3
+@exit_reason[40]: 727
+@exit_reason[10]: 2048
+@exit_reason[48]: 12157
+@exit_reason[43]: 12693
+@exit_reason[53]: 36187
+@exit_reason[52]: 47998
+@exit_reason[18]: 78938
+@exit_reason[49]: 80726
+@exit_reason[1]: 140368
+@exit_reason[7]: 281558
+@exit_reason[12]: 302445
+@exit_reason[32]: 1320025
+@exit_reason[31]: 5034014
+@exit_reason[24]: 5826390
+
+
+@entries: 13176084
+@exit_reason[0]: 3
+@exit_reason[40]: 727
+@exit_reason[10]: 2048
+@exit_reason[48]: 12157
+@exit_reason[43]: 12693
+@exit_reason[53]: 36187
+@exit_reason[52]: 47998
+@exit_reason[18]: 78938
+@exit_reason[49]: 80726
+@exit_reason[1]: 140368
+@exit_reason[7]: 281558
+@exit_reason[12]: 302445
+@exit_reason[32]: 1320025
+@exit_reason[31]: 5034014
+@exit_reason[24]: 5826390
+
+@exits: 13176277
+@kvm_host_us: 
+[0]                16713 |                                                    |
+[1]               808674 |@@@@@@                                              |
+[2, 4)           5164078 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@             |
+[4, 8)           6773061 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[8, 16)           163452 |@                                                   |
+[16, 32)            5864 |                                                    |
+[32, 64)            5624 |                                                    |
+[64, 128)           9334 |                                                    |
+[128, 256)         33956 |                                                    |
+[256, 512)        167565 |@                                                   |
+[512K, 1M)             7 |                                                    |
+
+
+>>> running vm_netlat for 30s
+WARNING: Could not find kernel headers in /lib/modules/5.14.0-687.44.1.el9_8.x86_64/source or /lib/modules/5.14.0-687.44.1.el9_8.x86_64/build. To specify a particular path to kernel headers, set the env variables BPFTRACE_KERNEL_SOURCE and, optionally, BPFTRACE_KERNEL_BUILD if the kernel was built in a different directory than its source. To create kernel headers run 'modprobe kheaders', which will create a tar file at /sys/kernel/kheaders.tar.xz
+Attaching 6 probes...
+vm_netlat: tracing TX via qemu/vhost threads; RX via iface name predicate
+
+=== [4] Host network path (tap/vnet) ===
+TX queue (qemu/vhost) / xmit / RX counts:
+@queued: 2218
+@xmit: 1704
+@rx: 104
+TX queue→xmit latency (us):
+@net_tx_queue_to_xmit_us: 
+[0]                  915 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[1]                  592 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                   |
+[2, 4)               185 |@@@@@@@@@@                                          |
+[4, 8)                 8 |                                                    |
+[8, 16)                4 |                                                    |
+
+TX latency samples:
+@net_tx_samples: 1704
+
+
+@net_tx_queue_to_xmit_us: 
+[0]                  915 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[1]                  592 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                   |
+[2, 4)               185 |@@@@@@@@@@                                          |
+[4, 8)                 8 |                                                    |
+[8, 16)                4 |                                                    |
+
+@net_tx_samples: 1704
+
+@queued: 2218
+@rx: 104
+
+@xmit: 1704
+
+================================================================
+ VM latency stack summary
+================================================================
+target:    ekuric/winx-1  guest=ekuric_winx-1
+node:      x37-h41-000-r740xd  qemu_tgid=2756104  disks=252:16,252:32  net=k6t-eth0,tap0
+duration:  30s per probe layer
+
+[1] Block I/O (host): n=772  p50=384us  p95=384us  p99=384us  avg=368us  max=384us
+[2] vCPU run-queue: n=76502  p50=3us  p95=6us  p99=24us  avg=4us  max=384us
+[3] KVM exit host-time: n=24645868  p50=6us  p95=6us  p99=384us  avg=11us  max=384us
+[4] Host net TX queue→xmit: n=394  p50=3us  p95=6us  p99=12us  avg=3us  max=12us
+[4b] Guest ICMP RTT: (see ping section above / skipped)
+
+top KVM exit reasons (from probe):
+@exit_reason[0]: 3
+@exit_reason[40]: 727
+@exit_reason[10]: 2048
+@exit_reason[48]: 12157
+@exit_reason[43]: 12693
+@exit_reason[53]: 36187
+@exit_reason[52]: 47998
+@exit_reason[18]: 78938
+@exit_reason[49]: 80726
+@exit_reason[1]: 140368
+@exit_reason[7]: 281558
+@exit_reason[12]: 302445
+@exit_reason[32]: 1320025
+@exit_reason[31]: 5034014
+@exit_reason[24]: 5826390
+@entries: 13176084
+@exit_reason[0]: 3
+@exit_reason[40]: 727
+@exit_reason[10]: 2048
+@exit_reason[48]: 12157
+@exit_reason[43]: 12693
+@exit_reason[53]: 36187
+@exit_reason[52]: 47998
+@exit_reason[18]: 78938
+@exit_reason[49]: 80726
+@exit_reason[1]: 140368
+@exit_reason[7]: 281558
+@exit_reason[12]: 302445
+@exit_reason[32]: 1320025
+@exit_reason[31]: 5034014
+
+notes:
+  - Generic net iface names (tap0/k6t-eth0): TX latency attributed via QEMU/vhost threads.
+
+done.
+raw outputs: /tmp/vm-latency-work/
+job.batch/vm-lat-winx-1-20260918100251 condition met
+
+observer finished (job=vm-lat-winx-1-20260918100251).

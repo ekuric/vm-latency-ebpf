@@ -1,0 +1,75 @@
+// vm_biosnoop.bt — per-IO block latency for the VM's backing disks (BCC biosnoop-style)
+// Filters to @@DISK_INIT@@ maj:min devices from discover-qemu.sh.
+// Prints one line per completion with latency >= BIOSNOOP_MIN_US (default 1000 µs)
+// to avoid flooding under heavy FIO; always keeps a latency hist + byte totals.
+
+BEGIN {
+	@@DISK_INIT@@
+	printf("vm_biosnoop: tracing block_rq for selected disks (print if lat>=1000us)\n");
+	printf("%-10s %-8s %-16s %-4s %10s %12s %10s\n",
+		"TIME", "DEV", "COMM", "T", "SECTOR", "BYTES", "LAT(us)");
+}
+
+tracepoint:block:block_rq_issue
+/@disks[args->dev]/
+{
+	@start[args->dev, args->sector] = nsecs;
+	@ipid[args->dev, args->sector] = pid;
+	@icomm[args->dev, args->sector] = comm;
+	@issued = count();
+}
+
+tracepoint:block:block_rq_complete
+/@disks[args->dev] && @start[args->dev, args->sector]/
+{
+	$lat_us = (nsecs - @start[args->dev, args->sector]) / 1000;
+	$bytes = args->nr_sector * 512;
+	@biolat_us = hist($lat_us);
+	@bytes_total = sum($bytes);
+	@completed = count();
+	@biolat_by_rwbs[args->rwbs] = hist($lat_us);
+	@bytes_by_rwbs[args->rwbs] = sum($bytes);
+
+	/* Slow-IO / notable completions only (biosnoop flood guard) */
+	if ($lat_us >= 1000) {
+		time("%H:%M:%S  ");
+		printf("%-8d %-16s %-4s %10d %12d %10d\n",
+			args->dev,
+			@icomm[args->dev, args->sector],
+			args->rwbs,
+			args->sector,
+			$bytes,
+			$lat_us);
+		@slow_ios = count();
+	}
+
+	delete(@start[args->dev, args->sector]);
+	delete(@ipid[args->dev, args->sector]);
+	delete(@icomm[args->dev, args->sector]);
+}
+
+interval:ms:@@DURATION_MS@@
+{
+	exit();
+}
+
+END
+{
+	printf("\n=== [6] Biosnoop (host block, VM disks) ===\n");
+	printf("issued / completed / slow(>=1ms):\n");
+	print(@issued);
+	print(@completed);
+	print(@slow_ios);
+	printf("bytes total:\n");
+	print(@bytes_total);
+	printf("bytes by rwbs:\n");
+	print(@bytes_by_rwbs);
+	printf("latency histogram (us):\n");
+	print(@biolat_us);
+	printf("latency by rwbs (us):\n");
+	print(@biolat_by_rwbs);
+	clear(@start);
+	clear(@ipid);
+	clear(@icomm);
+	clear(@disks);
+}

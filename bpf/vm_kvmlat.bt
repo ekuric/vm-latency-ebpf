@@ -1,0 +1,40 @@
+// vm_kvmlat.bt — KVM exit host-time for one QEMU TGID
+
+BEGIN {
+	printf("vm_kvmlat: tracing kvm_exit/kvm_entry for tgid %d\n", @@QEMU_TGID@@);
+}
+
+tracepoint:kvm:kvm_exit
+/pid == @@QEMU_TGID@@/
+{
+	@exit_ts[tid] = nsecs;
+	@exit_reason[args->exit_reason] = count();
+	@exits = count();
+}
+
+tracepoint:kvm:kvm_entry
+/pid == @@QEMU_TGID@@ && @exit_ts[tid]/
+{
+	$host_us = (nsecs - @exit_ts[tid]) / 1000;
+	@kvm_host_us = hist($host_us);
+	@entries = count();
+	delete(@exit_ts[tid]);
+}
+
+interval:ms:@@DURATION_MS@@
+{
+	exit();
+}
+
+END
+{
+	printf("\n=== [3] KVM exit host-time ===\n");
+	printf("exits / entries:\n");
+	print(@exits);
+	print(@entries);
+	printf("host time between kvm_exit and kvm_entry (us):\n");
+	print(@kvm_host_us);
+	printf("exit reasons (raw codes):\n");
+	print(@exit_reason);
+	clear(@exit_ts);
+}

@@ -1,0 +1,66 @@
+// vm_runqlat.bt — QEMU run-queue latency (all / vCPU / IOThread / other)
+
+BEGIN {
+	@@QTHREAD_INIT@@
+	@@VCPU_THREAD_INIT@@
+	@@IOTHREAD_THREAD_INIT@@
+	@@OTHER_THREAD_INIT@@
+	printf("vm_runqlat: tracing QEMU thread run-queue latency (split by role)\n");
+}
+
+tracepoint:sched:sched_wakeup,
+tracepoint:sched:sched_wakeup_new
+/@qthreads[args->pid]/
+{
+	@wake_ts[args->pid] = nsecs;
+}
+
+tracepoint:sched:sched_switch
+/@qthreads[args->next_pid] && @wake_ts[args->next_pid]/
+{
+	$lat_us = (nsecs - @wake_ts[args->next_pid]) / 1000;
+	@runqlat_us = hist($lat_us);
+	@runq_samples = count();
+	if (@vcpu_threads[args->next_pid]) {
+		@runqlat_vcpu_us = hist($lat_us);
+		@runq_samples_vcpu = count();
+	} else if (@iothread_threads[args->next_pid]) {
+		@runqlat_iothread_us = hist($lat_us);
+		@runq_samples_iothread = count();
+	} else {
+		@runqlat_other_us = hist($lat_us);
+		@runq_samples_other = count();
+	}
+	delete(@wake_ts[args->next_pid]);
+}
+
+interval:ms:@@DURATION_MS@@
+{
+	exit();
+}
+
+END
+{
+	printf("\n=== [2] vCPU / QEMU run-queue latency ===\n");
+	printf("samples (all QEMU threads):\n");
+	print(@runq_samples);
+	printf("run-queue latency histogram — all QEMU threads (us):\n");
+	print(@runqlat_us);
+	printf("samples (vCPU threads):\n");
+	print(@runq_samples_vcpu);
+	printf("run-queue latency histogram — vCPU (us):\n");
+	print(@runqlat_vcpu_us);
+	printf("samples (IOThread):\n");
+	print(@runq_samples_iothread);
+	printf("run-queue latency histogram — IOThread (us):\n");
+	print(@runqlat_iothread_us);
+	printf("samples (other QEMU threads):\n");
+	print(@runq_samples_other);
+	printf("run-queue latency histogram — other (us):\n");
+	print(@runqlat_other_us);
+	clear(@wake_ts);
+	clear(@qthreads);
+	clear(@vcpu_threads);
+	clear(@iothread_threads);
+	clear(@other_threads);
+}

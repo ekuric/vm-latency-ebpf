@@ -1,0 +1,47 @@
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: vm-latency-observer
+  annotations:
+    kubernetes.io/description: >
+      Privileged SCC for CNV VM latency eBPF observer Jobs.
+      Allows hostPID, privileged, and hostPath mounts needed for bpftrace/BTF.
+allowPrivilegedContainer: true
+allowHostDirVolumePlugin: true
+allowHostIPC: false
+allowHostNetwork: true
+allowHostPID: true
+allowHostPorts: false
+allowPrivilegeEscalation: true
+readOnlyRootFilesystem: false
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: RunAsAny
+fsGroup:
+  type: RunAsAny
+supplementalGroups:
+  type: RunAsAny
+seccompProfiles:
+  - '*'
+allowedCapabilities:
+  - SYS_ADMIN
+  - SYS_RESOURCE
+  - SYS_PTRACE
+  - PERFMON
+  - BPF
+  - NET_ADMIN
+  - NET_RAW
+volumes:
+  - configMap
+  - emptyDir
+  - hostPath
+  - projected
+  - secret
+  - downwardAPI
+users: []
+groups: []
+# Bind ServiceAccount — on real OCP clusters you usually ALSO need:
+#   oc adm policy add-scc-to-user privileged -z vm-latency-observer -n <ns>
+# The built-in privileged SCC is what grants hostPID + spc_t reliably.
+#   oc adm policy add-scc-to-user vm-latency-observer -z vm-latency-observer -n <ns>
