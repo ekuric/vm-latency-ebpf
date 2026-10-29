@@ -2,7 +2,7 @@
 # Build:
 #   podman build -t vm-latency-ebpf:latest -f Dockerfile .
 #   podman push <registry>/vm-latency-ebpf:latest
-FROM registry.fedoraproject.org/fedora:41
+FROM registry.fedoraproject.org/fedora:44
 
 RUN dnf install -y \
       bpftrace \
